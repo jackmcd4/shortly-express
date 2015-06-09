@@ -22,12 +22,6 @@ app.use(session({
   resave: false,
   saveUninitialized: true,
   cookie: { secure: true }
-
-  // genid: function(req) {
-  //   var gui = guid();
-  //   console.log(gui);
-  //   return gui; // use UUIDs for session IDs
-  // }
 }));
 // app.use(cookieParser('shhhh, very secret'));
 app.set('views', __dirname + '/views');
@@ -39,15 +33,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
-var restrict = function (req, res, next) {
-  if (req.session.user) {
-    next();
-  } else {
-    req.session.error = 'Access denied!';
-    res.redirect('/login');
-  }
-}
-
 
 app.get('/login',
 function(req, res) {
@@ -56,27 +41,31 @@ function(req, res) {
 
 app.post('/login',
 function(req, res) {
+  console.log("IN");
   var username = req.body.username;
   var password = req.body.password;
-
 //check for new user
   new User({username: username}).fetch().then(function(found) {
     if (found) {
 
       if(util.testPassword(password, found.attributes)) {
         //save sessionID
+        var expiration = new Date(Date.now() + (10 * 60000));
+        var token = req.sessionID;
+        req.session.cookie.expires = expiration;
+
         var session = new Session({
           user_id: found.attributes.id,
-          token: req.sessionID,
-          expiration: new Date(Date.now() + 900000)
+          token: token,
+          expiration: expiration
         });
 
         session.save().then(function(newSession) {
           Sessions.add(newSession);
-          console.log("one", newSession.attributes.expiration);
-          res.cookie('session', req.sessionID, { expires: newSession.attributes.expiration});
+          console.log("expiration", expiration);
+          res.cookie('session', token, { expires: expiration});
           // res.send(200);
-          res.render('index');
+          res.redirect('index');
         });
       } else {
         res.render('login', { error: 'Incorrect password' })
@@ -90,7 +79,7 @@ function(req, res) {
 });
 
 
-app.get('/', restrict,
+app.get('/', util.checkUser,
 function(req, res) {
   //ask if user logged in?
   res.render('index');
@@ -100,6 +89,22 @@ app.get('/signup',
 function(req, res) {
   res.render('signup');
 });
+
+app.get('/logout',
+function(req, res) {
+    console.log("OUT");
+    res.clearCookie('session');
+    res.redirect('login');
+
+});
+app.post('/',
+function(req, res) {
+    console.log("OUT");
+    res.clearCookie('session');
+    res.redirect('login');
+
+});
+
 
 app.post('/signup',
 function(req, res) {
@@ -122,26 +127,26 @@ function(req, res) {
         Users.add(newUser);
         // console.log(newUser);
         // res.send(200, );
-        res.render('index');
+        res.redirect('login');
       });
 
     }
   });
 });
 
-app.get('/create',
+app.get('/create', util.checkUser,
 function(req, res) {
   res.render('index');
 });
 
-app.get('/links',
+app.get('/links', util.checkUser,
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links',
+app.post('/links', util.checkUser,
 function(req, res) {
   var uri = req.body.url;
 

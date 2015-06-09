@@ -8,7 +8,6 @@ var Session = db.Model.extend({
     return this.hasOne(User, 'user_id');
   },
   initialize: function() {
-    console.log("two", this.attributes.expiration);
   }
 });
 

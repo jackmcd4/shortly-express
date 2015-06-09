@@ -12,7 +12,7 @@ var db = Bookshelf.initialize({
     filename: path.join(__dirname, '../db/shortly.sqlite')
   }
 });
-db.knex.schema.dropTable("sessions");
+// db.knex.schema.dropTable("sessions");
 
 db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
