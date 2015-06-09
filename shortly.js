@@ -1,4 +1,6 @@
 var express = require('express');
+var session = require('express-session');
+var cookieParser = require('cookie-parser');
 var util = require('./lib/utility');
 var partials = require('express-partials');
 var bodyParser = require('body-parser');
@@ -7,12 +9,36 @@ var bodyParser = require('body-parser');
 var db = require('./app/config');
 var Users = require('./app/collections/users');
 var User = require('./app/models/user');
+var Sessions = require('./app/collections/sessions');
+var Session = require('./app/models/session');
 var Links = require('./app/collections/links');
 var Link = require('./app/models/link');
 var Click = require('./app/models/click');
 
-var app = express();
+var guid = function() {
+  function s4() {
+    return Math.floor((1 + Math.random()) * 0x10000)
+      .toString(16)
+      .substring(1);
+  }
+  return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
+    s4() + '-' + s4() + s4() + s4();
+}
 
+var app = express();
+app.use(session({
+  secret: 'keyboard cat',
+  resave: false,
+  saveUninitialized: true,
+  cookie: { secure: true }
+
+  // genid: function(req) {
+  //   var gui = guid();
+  //   console.log(gui);
+  //   return gui; // use UUIDs for session IDs
+  // }
+}));
+// app.use(cookieParser('shhhh, very secret'));
 app.set('views', __dirname + '/views');
 app.set('view engine', 'ejs');
 app.use(partials());
@@ -22,25 +48,75 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static(__dirname + '/public'));
 
+var restrict = function (req, res, next) {
+  if (req.session.user) {
+    next();
+  } else {
+    req.session.error = 'Access denied!';
+    res.redirect('/login');
+  }
+}
 
-app.get('/', 
+
+app.get('/login',
+function(req, res) {
+  res.render('login');
+});
+
+app.post('/login',
+function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+
+//check for new user
+  new User({username: username}).fetch().then(function(found) {
+    if (found) {
+      if(utils.testPassword(password, found.attributes)) {
+        //save sessionID
+        var session = new Session({
+          user_id: found.attributes.id,
+          session_id: req.sessionID
+        });
+
+        session.save().then(function(newSession) {
+          Sessions.add(newSession);
+          res.cookie('session', 'something', { expires: newSession.expiration});
+          res.send(200, found.attributes);
+        });
+        //res.redirect('index')
+      }
+      //else
+        //res.render('login', { error: 'Incorrect password' })
+
+    } else {
+     res.render('login', { error: 'Username not found' });
+    }
+  });
+
+
+  res.render('index');
+});
+
+
+app.get('/', restrict,
+function(req, res) {
+  //ask if user logged in?
+  res.render('index');
+});
+
+app.get('/create',
 function(req, res) {
   res.render('index');
 });
 
-app.get('/create', 
-function(req, res) {
-  res.render('index');
-});
-
-app.get('/links', 
+app.get('/links',
 function(req, res) {
   Links.reset().fetch().then(function(links) {
     res.send(200, links.models);
   });
 });
 
-app.post('/links', 
+app.post('/links',
 function(req, res) {
   var uri = req.body.url;
 
