@@ -12,6 +12,7 @@ var db = Bookshelf.initialize({
     filename: path.join(__dirname, '../db/shortly.sqlite')
   }
 });
+db.knex.schema.dropTable("sessions");
 
 db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
@@ -61,7 +62,7 @@ db.knex.schema.hasTable('sessions').then(function(exists) {
       session.increments('id').primary();
       session.integer('user_id');
       session.string('token', 100);
-      session.dateTime('expiration', new Date(Date.now() + 900000));
+      session.dateTime('expiration');
       session.timestamps();
     }).then(function (table) {
       console.log('Created Table', table);

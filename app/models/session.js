@@ -6,6 +6,9 @@ var Session = db.Model.extend({
   hasTimestamps: true,
   user: function() {
     return this.hasOne(User, 'user_id');
+  },
+  initialize: function() {
+    console.log("two", this.attributes.expiration);
   }
 });
 
