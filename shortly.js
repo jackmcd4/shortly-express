@@ -71,7 +71,7 @@ function(req, res) {
 //check for new user
   new User({username: username}).fetch().then(function(found) {
     if (found) {
-      if(utils.testPassword(password, found.attributes)) {
+      if(util.testPassword(password, found.attributes)) {
         //save sessionID
         var session = new Session({
           user_id: found.attributes.id,
@@ -82,19 +82,17 @@ function(req, res) {
           Sessions.add(newSession);
           res.cookie('session', 'something', { expires: newSession.expiration});
           res.send(200, found.attributes);
+          res.render('index');
         });
-        //res.redirect('index')
+      } else {
+        res.render('login', { error: 'Incorrect password' })
       }
-      //else
-        //res.render('login', { error: 'Incorrect password' })
-
     } else {
      res.render('login', { error: 'Username not found' });
     }
   });
 
 
-  res.render('index');
 });
 
 
@@ -102,6 +100,36 @@ app.get('/', restrict,
 function(req, res) {
   //ask if user logged in?
   res.render('index');
+});
+
+app.get('/signup',
+function(req, res) {
+  res.render('signup');
+});
+
+app.post('/signup',
+function(req, res) {
+  var username = req.body.username;
+  var password = req.body.password;
+
+//check for new user
+  new User({username: username}).fetch().then(function(found) {
+    if (found) {
+        res.render('signup', { error: 'Username already exists' });
+    } else {
+      var user = new User({
+        username: username,
+        password: password
+      });
+
+      user.save().then(function(newUser) {
+        Users.add(newUser);
+        res.send(200, newUser);
+        res.render('index');
+      });
+
+    }
+  });
 });
 
 app.get('/create',
