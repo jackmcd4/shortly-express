@@ -75,7 +75,7 @@ function(req, res) {
           Sessions.add(newSession);
           console.log("one", newSession.attributes.expiration);
           res.cookie('session', req.sessionID, { expires: newSession.attributes.expiration});
-          res.send(200, found.attributes);
+          // res.send(200);
           res.render('index');
         });
       } else {
