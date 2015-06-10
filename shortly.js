@@ -50,7 +50,7 @@ function(req, res) {
 
       if(util.testPassword(password, found.attributes)) {
         //save sessionID
-        var expiration = new Date(Date.now() + (10 * 60000));
+        var expiration = new Date(Date.now() + (60000));
         var token = req.sessionID;
         req.session.cookie.expires = expiration;
 
@@ -155,9 +155,11 @@ function(req, res) {
     return res.send(404);
   }
 
-  new Link({ url: uri }).fetch().then(function(found) {
-    if (found) {
-      res.send(200, found.attributes);
+  new Link({ url: uri }).fetch().then(function(foundLink) {
+    if (foundLink) {
+
+
+      res.send(200, foundLink.attributes);
     } else {
       util.getUrlTitle(uri, function(err, title) {
         if (err) {

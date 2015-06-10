@@ -12,7 +12,18 @@ var db = Bookshelf.initialize({
     filename: path.join(__dirname, '../db/shortly.sqlite')
   }
 });
-// db.knex.schema.dropTable("sessions");
+// db.knex.schema.dropTableIfExists('users').then(function(something, err) {
+//     console.log("droptable", something, err);
+//   });
+// db.knex.schema.dropTableIfExists('urls').then(function(something, err) {
+//     console.log("droptable", something, err);
+//   });
+// db.knex.schema.dropTableIfExists('sessions').then(function(something, err) {
+//     console.log("droptable", something, err);
+//   });
+// db.knex.schema.dropTableIfExists('clicks').then(function(something, err) {
+//     console.log("droptable", something, err);
+//   });
 
 db.knex.schema.hasTable('urls').then(function(exists) {
   if (!exists) {
@@ -69,6 +80,15 @@ db.knex.schema.hasTable('sessions').then(function(exists) {
     });
   }
 });
+
+db.knex.schema.hasTable('users_urls').then(function(exists) {
+  if(!exists) {
+    db.knex.schema.createTable('users_urls', function(table){
+      table.integer('user_id').references('users.id');
+      table.integer('urls_id').references('urls.id');
+    })
+  }
+})
 
 
 
