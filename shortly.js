@@ -47,8 +47,8 @@ function(req, res) {
 //check for new user
   new User({username: username}).fetch().then(function(found) {
     if (found) {
-
-      if(util.testPassword(password, found.attributes)) {
+      console.log("IN HERE")
+      util.testPassword(password, found.attributes, function() {
         //save sessionID
         var expiration = new Date(Date.now() + (60000));
         var token = req.sessionID;
@@ -67,9 +67,8 @@ function(req, res) {
           // res.send(200);
           res.redirect('index');
         });
-      } else {
-        res.render('login', { error: 'Incorrect password' })
-      }
+      });
+
     } else {
      res.render('login', { error: 'Username not found' });
     }
@@ -116,17 +115,17 @@ function(req, res) {
     if (found) {
         res.render('signup', { error: 'Username already exists' });
     } else {
-      var salt = bcrypt.genSaltSync(10);
+
+
+      var password = bcrypt.hashSync(password, null);
+
       var user = new User({
-        salt: salt,
         username: username,
-        password: bcrypt.hashSync(password, salt)
+        password: password
       });
 
       user.save().then(function(newUser) {
         Users.add(newUser);
-        // console.log(newUser);
-        // res.send(200, );
         res.redirect('login');
       });
 
@@ -157,9 +156,17 @@ function(req, res) {
 
   new Link({ url: uri }).fetch().then(function(foundLink) {
     if (foundLink) {
+      console.log(req.session.user);
+      new User({id: req.session.user.id}).fetch().then(function(user){
+        foundLink.save().then(function(newLink){
+          newLink.users().attach(user).then(function(relation){
+            Links.add(newLink);
+            res.send(200, newLink);
+          })
+        });
+      })
 
-
-      res.send(200, foundLink.attributes);
+      // res.send(200, foundLink.attributes);
     } else {
       util.getUrlTitle(uri, function(err, title) {
         if (err) {
@@ -200,6 +207,7 @@ app.get('/*', function(req, res) {
       res.redirect('/');
     } else {
       var click = new Click({
+        // user_id: user.get('id')
         link_id: link.get('id')
       });
 

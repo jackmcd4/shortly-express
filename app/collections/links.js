@@ -5,4 +5,8 @@ var Links = new db.Collection();
 
 Links.model = Link;
 
+// links.diplay = function (user) {
+
+// }
+
 module.exports = Links;
